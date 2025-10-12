@@ -1,0 +1,26 @@
+[
+  {
+    "buying": "high",
+    "maint": "med", 
+    "doors": "4",
+    "persons": "4",
+    "lug_boot": "big",
+    "safety": "high"
+  },
+  {
+    "buying": "low",
+    "maint": "low",
+    "doors": "4", 
+    "persons": "more",
+    "lug_boot": "big",
+    "safety": "high"
+  },
+  {
+    "buying": "vhigh",
+    "maint": "vhigh",
+    "doors": "2",
+    "persons": "2", 
+    "lug_boot": "small",
+    "safety": "low"
+  }
+]

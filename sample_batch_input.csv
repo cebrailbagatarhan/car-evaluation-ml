@@ -1,0 +1,7 @@
+# Örnek CSV dosyası - veri girişi için
+buying,maint,doors,persons,lug_boot,safety
+high,med,4,4,big,high
+low,low,4,more,big,high
+vhigh,vhigh,2,2,small,low
+med,high,3,4,med,med
+low,med,5more,more,big,high

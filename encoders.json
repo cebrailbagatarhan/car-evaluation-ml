@@ -1,0 +1,94 @@
+{
+  "buying": {
+    "classes": [
+      "high",
+      "low",
+      "med",
+      "vhigh"
+    ],
+    "mapping": {
+      "high": 0,
+      "low": 1,
+      "med": 2,
+      "vhigh": 3
+    }
+  },
+  "maint": {
+    "classes": [
+      "high",
+      "low",
+      "med",
+      "vhigh"
+    ],
+    "mapping": {
+      "high": 0,
+      "low": 1,
+      "med": 2,
+      "vhigh": 3
+    }
+  },
+  "doors": {
+    "classes": [
+      "2",
+      "3",
+      "4",
+      "5more"
+    ],
+    "mapping": {
+      "2": 0,
+      "3": 1,
+      "4": 2,
+      "5more": 3
+    }
+  },
+  "persons": {
+    "classes": [
+      "2",
+      "4",
+      "more"
+    ],
+    "mapping": {
+      "2": 0,
+      "4": 1,
+      "more": 2
+    }
+  },
+  "lug_boot": {
+    "classes": [
+      "big",
+      "med",
+      "small"
+    ],
+    "mapping": {
+      "big": 0,
+      "med": 1,
+      "small": 2
+    }
+  },
+  "safety": {
+    "classes": [
+      "high",
+      "low",
+      "med"
+    ],
+    "mapping": {
+      "high": 0,
+      "low": 1,
+      "med": 2
+    }
+  },
+  "class": {
+    "classes": [
+      "acc",
+      "good",
+      "unacc",
+      "vgood"
+    ],
+    "mapping": {
+      "acc": 0,
+      "good": 1,
+      "unacc": 2,
+      "vgood": 3
+    }
+  }
+}
