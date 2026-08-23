@@ -1,264 +1,119 @@
-# Car Evaluation Machine Learning Project
+# Car Evaluation — classic ML benchmark
 
-🚗 **Araba Değerlendirme Makine Öğrenmesi Projesi**
+UCI Car Evaluation veri seti üzerinde kategorik encoding ve klasik sınıflandırma algoritmalarını karşılaştıran eğitim projesi. Veri seti 1.728 satır, 6 nominal/ordinal kategorik özellik ve 4 hedef sınıf içerir.
 
-UCI Car Evaluation veri setini kullanarak 7 farklı makine öğrenmesi algoritması ile otomobil kabul edilebilirlik tahmini yapan kapsamlı bir proje.
+Bu repo “ileri ML” iddiası taşımaz. Küçük, iyi bilinen bir veri setinde preprocessing, nested cross-validation, calibration ve hata analizi öğrenmek için kullanılır.
 
-## 🎯 Proje Özellikleri
+## Neden yeni benchmark var?
 
-### 📊 Veri Seti
-- **Kaynak:** UCI Machine Learning Repository
-- **Örnekler:** 1,728 araba
-- **Özellikler:** 6 kategorik özellik
-- **Sınıflar:** 4 kabul edilebilirlik seviyesi (unacc, acc, good, vgood)
+Legacy `car_evaluation_model.py`, bütün özelliklerde `LabelEncoder` kullanır. Bu yaklaşım `low=1`, `med=2`, `high=0` gibi alfabetik ve yapay sayısal ilişkiler üretebilir. Özellikle SVM, KNN ve Logistic Regression bu mesafeleri gerçekmiş gibi yorumlayabilir. Encoder'ın split öncesi bütün veri üzerinde fit edilmesi de pipeline dışı preprocessing oluşturur.
 
-### 🤖 Makine Öğrenmesi Modelleri
-1. **Decision Tree** - %98.55 doğruluk ⭐
-2. **Random Forest** - %98.27 doğruluk
-3. **Gradient Boosting** - %97.98 doğruluk
-4. **SVM** - %92.77 doğruluk
-5. **K-Nearest Neighbors** - %90.75 doğruluk
-6. **Logistic Regression** - %69.08 doğruluk
-7. **Naive Bayes** - %64.16 doğruluk
+`encoding_benchmark.py` iki kontrollü yolu karşılaştırır:
 
-## 🚀 Özellikler
+| Encoding | Uygulama | Amaç |
+| --- | --- | --- |
+| Ordinal baseline | `ColumnTransformer` + `OrdinalEncoder(unknown_value=-1)` | Tek kolonlu sayısal baseline; legacy yaklaşımın kontrollü karşılığı |
+| One-hot | `ColumnTransformer` + `OneHotEncoder(handle_unknown="ignore")` | Nominal kategoriler arasında yapay mesafe oluşturmamak |
 
-### 📈 Gelişmiş Görselleştirmeler
-- ✅ ROC Curves ve AUC skorları
-- ✅ Confusion Matrix analizi
-- ✅ Learning Curves
-- ✅ Feature Importance analizi
-- ✅ 3D interaktif görselleştirmeler (Plotly)
-- ✅ Decision Tree yapı görselleştirmeleri (3 seviye detay)
-- ✅ Model performans karşılaştırmaları
+Her encoder yalnızca ilgili inner/outer fold'un eğitim bölümünde fit edilir.
 
-### 🎮 İnteraktif Tahmin Sistemi
-- 🖥️ **Komut satırı menüsü** - 7 farklı seçenek
-- 🌐 **Web arayüzü** - Flask tabanlı
-- 📝 **5 farklı veri giriş yöntemi:**
-  1. İnteraktif adım adım girdi
-  2. Manuel tek seferde girdi
-  3. Dosyadan toplu tahmin
-  4. Örnek dosya oluşturma
-  5. Model görselleştirme
+## Modeller
 
-### 🌳 Karar Ağacı Derinliği
-- **TAM DETAY:** 14 seviye, 169 düğüm, 254 kural satırı
-- **ORTA DETAY:** İlk 6 seviye (dengeli görüntü)
-- **ÖZET:** İlk 3 seviye (hızlı bakış)
+- Decision Tree
+- Random Forest
+- Gradient Boosting
+- SVM
+- K-Nearest Neighbors
+- Logistic Regression
+- Gaussian Naive Bayes
 
-## 📦 Kurulum
+Bu liste genişlik gösterisinden çok preprocessing etkisini farklı model ailelerinde görmek içindir.
 
-### Gereksinimler
+## Kurulum
+
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-**Gerekli kütüphaneler:**
-- Python 3.13+
-- pandas 2.2.3
-- numpy 2.2.3
-- scikit-learn 1.6.1
-- matplotlib 3.10.3
-- seaborn 0.13.2
-- plotly (3D görselleştirmeler için)
-- flask (web arayüzü için)
+## Encoding benchmark
 
-## 🎯 Kullanım
+Tam nested CV:
 
-### 1. Ana Model Eğitimi ve Analizi
 ```bash
-python car_evaluation_model.py
+python encoding_benchmark.py --outer-folds 5 --inner-folds 3 --seed 42
 ```
-- 7 model eğitir ve karşılaştırır
-- Görselleştirmeler oluşturur
-- Model dosyalarını kaydeder
 
-### 2. İnteraktif Tahmin Sistemi
+Hızlı smoke run:
+
 ```bash
-python interactive_predictor.py
+python encoding_benchmark.py --outer-folds 3 --inner-folds 2 --quick
 ```
-**Menü seçenekleri:**
-1. İnteraktif veri girişi
-2. Manuel veri girişi
-3. Dosyadan toplu tahmin
-4. Örnek dosyalar oluştur
-5. Model görselleştirme
-6. Gelişmiş model analizi
-7. Çıkış
 
-### 3. Model Görselleştirme
+Script her model/encoding çifti için inner `GridSearchCV` ile macro F1 seçimi yapar ve bağımsız outer fold'da değerlendirir. Üretilen artifact'ler:
+
+- `benchmark-results/nested_cv_folds.csv`
+- `benchmark-results/summary.csv`
+- `benchmark-results/results.json`
+- `benchmark-results/README.md`
+
+## Raporlanan metrikler
+
+| Alan | Neden? |
+| --- | --- |
+| Accuracy | Legacy sonuçlarla kaba karşılaştırma |
+| Balanced accuracy | Dengesiz sınıflarda her sınıfa eşit ağırlık |
+| Macro F1 | Az görülen `good`/`vgood` sınıflarını saklamayan ana seçim metriği |
+| Log loss | Olasılık kalitesi |
+| Multiclass Brier | Olasılıkların one-hot hedefe karesel uzaklığı; düşük daha iyi |
+| ECE | Confidence ile gerçekleşen doğruluk farkı; düşük daha iyi |
+| Weighted OVR ROC AUC | Olasılık sıralama özeti |
+| Confusion/error analysis | En sık gerçek→tahmin hata çiftleri ve sınıf bazlı precision/recall/F1 |
+
+## Mevcut tekrarlanabilir sonuç
+
+Bu PR'daki benchmark; `car.data` SHA-256 `2a9f028bd612f90ce7bb94dc798bd5748d6d1811ad4d740aad5c25187a4459a3`, seed 42, 5 outer fold ve 3 inner fold ile çalıştırıldı. Tam tablo, fold kayıtları ve seçilen hiperparametreler [`benchmark-results`](benchmark-results/README.md) altında bulunur.
+
+Öne çıkan macro F1 sonuçları:
+
+| Model | Ordinal | One-hot | One-hot farkı |
+| --- | ---: | ---: | ---: |
+| Logistic Regression | 0.3257 ± 0.0212 | 0.8863 ± 0.0252 | **+0.5606** |
+| Naive Bayes | 0.3294 ± 0.0165 | 0.7394 ± 0.0378 | **+0.4100** |
+| SVM | 0.9876 ± 0.0161 | 0.9978 ± 0.0049 | **+0.0102** |
+| Gradient Boosting | 0.9644 ± 0.0162 | 0.9723 ± 0.0202 | **+0.0079** |
+| Random Forest | 0.9633 ± 0.0107 | 0.9180 ± 0.0181 | -0.0453 |
+
+Sonuç, “one-hot her zaman kazanır” demiyor. Yapay ordinal ilişkinin özellikle Logistic Regression ve Naive Bayes'i ciddi biçimde bozduğunu; bazı ağaç/mesafe tabanlı modellerde ise ordinal baseline'ın daha yüksek outer-fold skoru verdiğini gösteriyor.
+
+## Sonuçların yorumu
+
+Kökteki eski yüzde tablosu tek train/test split ve legacy encoding akışından geliyordu. Yeni README bu sayıları güncel model kanıtı olarak tekrarlamaz. Kanonik karşılaştırma, komut çalıştırıldıktan sonra [`benchmark-results/README.md`](benchmark-results/README.md) ve ham JSON/CSV artifact'leridir.
+
+One-hot'ın her modelde kazanması beklenmemelidir. Ağaç modelleri kontrollü ordinal baseline'daki bazı sıralamalardan yararlanabilir; lineer ve mesafe tabanlı modellerde ise yapay ordinal ilişkinin etkisi daha belirgin olabilir. Kararı model adı veya vocabulary büyüklüğü gibi sezgilerle değil, outer-fold dağılımıyla verin.
+
+## Legacy uygulamalar
+
+| Dosya | Durum |
+| --- | --- |
+| `car_evaluation_model.py` | Legacy eğitim/görselleştirme akışı; LabelEncoder kullanır |
+| `interactive_predictor.py` / `web_app.py` | Legacy model/encoder artifact'leriyle tahmin arayüzleri |
+| `encoding_benchmark.py` | Kanonik encoding karşılaştırması ve değerlendirme |
+| `advanced_model_visualizer.py` | Görselleştirme deneyi |
+
+Benchmark sonucu seçilmeden legacy predictor'ı sessizce yeni pipeline'a geçirmek doğru değildir. Yeni üretim artifact'i istenecekse seçilen pipeline tam olarak fit edilmeli, encoder+model birlikte kaydedilmeli ve UI entegrasyonu ayrıca test edilmelidir.
+
+## Test
+
 ```bash
-python model_visualizer.py
-```
-- Karar ağacı yapısı (3 farklı detay seviyesi)
-- Özellik önemleri
-- Ağaç derinlik analizi
-- Model mimarisi diyagramları
-
-### 4. Gelişmiş Analiz
-```bash
-python advanced_model_visualizer.py
-```
-- 9 farklı görselleştirme türü
-- ROC curves
-- Learning curves
-- Confusion matrices
-- 3D feature space
-
-### 5. Web Arayüzü
-```bash
-python web_app.py
-```
-Tarayıcıda açın: `http://localhost:5000`
-
-## 📁 Proje Yapısı
-
-```
-car-evaluation/
-├── car.data                          # Veri seti
-├── car_evaluation_model.py           # Ana model eğitimi
-├── interactive_predictor.py          # İnteraktif tahmin sistemi
-├── model_visualizer.py               # Karar ağacı görselleştirme
-├── advanced_model_visualizer.py      # Gelişmiş analiz
-├── web_app.py                        # Flask web uygulaması
-├── requirements.txt                  # Gerekli kütüphaneler
-├── models/                           # Eğitilmiş modeller
-│   ├── decision_tree_model.pkl
-│   ├── random_forest_model.pkl
-│   └── label_encoders.pkl
-├── templates/                        # HTML şablonları
-│   └── index.html
-└── outputs/                          # Görselleştirmeler
-    ├── decision_tree_FULL_DETAIL.png
-    ├── confusion_matrices.png
-    ├── roc_curves.png
-    └── ...
+python -m unittest discover -s tests -v
 ```
 
-## 📊 Model Performansları
+## Veri ve sınırlamalar
 
-| Model | Test Doğruluğu | CV Ortalama | CV Std |
-|-------|---------------|-------------|--------|
-| Decision Tree | **98.55%** | 97.10% | 1.41% |
-| Random Forest | 98.27% | 96.31% | 1.29% |
-| Gradient Boosting | 97.98% | 97.97% | 0.93% |
-| SVM | 92.77% | 88.71% | 1.00% |
-| K-Nearest Neighbors | 90.75% | 88.28% | 1.47% |
-| Logistic Regression | 69.08% | 69.54% | 0.65% |
-| Naive Bayes | 64.16% | 64.62% | 2.71% |
-
-## 🎨 Görselleştirme Örnekleri
-
-### Karar Ağacı Detay Seviyeleri
-- **TAM DETAY** (40x30 inch): 14 seviye, 169 düğüm
-- **ORTA DETAY** (30x20 inch): İlk 6 seviye
-- **ÖZET** (20x15 inch): İlk 3 seviye
-
-### Oluşturulan Dosyalar
-- 📊 9 farklı PNG görselleştirme
-- 📈 2 HTML 3D interaktif grafik
-- 📝 3 detaylı metin raporu
-- 🌳 Karar ağacı SVG/PDF (opsiyonel)
-
-## 🔍 Özellikler
-
-### Giriş Özellikleri
-1. **buying** - Satın alma fiyatı (vhigh, high, med, low)
-2. **maint** - Bakım maliyeti (vhigh, high, med, low)
-3. **doors** - Kapı sayısı (2, 3, 4, 5more)
-4. **persons** - Kişi kapasitesi (2, 4, more)
-5. **lug_boot** - Bagaj boyutu (small, med, big)
-6. **safety** - Güvenlik (low, med, high)
-
-### Hedef Sınıflar
-- **unacc** - Kabul edilemez (70%)
-- **acc** - Kabul edilebilir (22%)
-- **good** - İyi (4%)
-- **vgood** - Çok iyi (4%)
-
-## 🎓 Teknik Detaylar
-
-### Preprocessing
-- Label Encoding (tüm kategorik değişkenler)
-- Train-test split (80-20)
-- Cross-validation (5-fold)
-
-### Hiperparametre Optimizasyonu
-- GridSearchCV ile Decision Tree optimizasyonu
-- En iyi parametreler otomatik seçilir
-
-### Font Desteği
-- Türkçe karakter desteği
-- Güvenli font fallback sistemi
-- Cross-platform uyumlu
-
-## 📈 Örnek Kullanım
-
-### Tek Tahmin
-```python
-from car_evaluation_model import CarEvaluationModel
-
-model = CarEvaluationModel('car.data')
-model.load_data()
-model.prepare_data()
-model.train_all_models()
-
-prediction = model.predict_single({
-    'buying': 'low',
-    'maint': 'med', 
-    'doors': '4',
-    'persons': 'more',
-    'lug_boot': 'big',
-    'safety': 'high'
-})
-print(prediction)  # 'vgood'
-```
-
-### Toplu Tahmin
-```python
-import pandas as pd
-
-df = pd.read_csv('sample_batch_input.csv')
-predictions = model.predict_batch(df)
-```
-
-## 🛠️ Geliştirme
-
-### Test Ortamı
-- Python 3.13.3
-- Windows/Linux/Mac uyumlu
-- VS Code ile geliştirildi
-
-### Kod Kalitesi
-- PEP 8 uyumlu
-- Kategorize import'lar
-- Detaylı dokümantasyon
-- Türkçe ve İngilizce destekli
-
-## 📝 Lisans
-
-Bu proje eğitim amaçlıdır ve UCI Machine Learning Repository'den alınan açık kaynak veri setini kullanmaktadır.
-
-## 👤 Yazar
-
-**Cebrail Bağatarhan**
-- GitHub: [@cebrailbagatarhan](https://github.com/cebrailbagatarhan)
-
-## 🙏 Teşekkürler
-
-- UCI Machine Learning Repository
-- Scikit-learn kütüphanesi
-- Matplotlib, Seaborn, Plotly görselleştirme araçları
-
-## 📚 Kaynaklar
-
-- [UCI Car Evaluation Dataset](https://archive.ics.uci.edu/dataset/19/car+evaluation)
-- [Scikit-learn Documentation](https://scikit-learn.org/)
-- [Matplotlib Documentation](https://matplotlib.org/)
-
----
-
-⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
-
-**Son Güncelleme:** Ekim 2025
+- Kaynak: [UCI Car Evaluation](https://archive.ics.uci.edu/dataset/19/car+evaluation)
+- Veri deterministik karar kurallarından türetilmiştir; gerçek araç satın alma davranışını temsil etmez.
+- Küçük veri setindeki çok yüksek doğruluk gerçek dünyaya genellenemez.
+- Aynı veri üzerinde çok sayıda model denemek araştırmacı serbestliği yaratır; nested CV bunu azaltır ama harici doğrulamanın yerini tutmaz.
+- Calibration metriği, deploy edilmiş olasılıkların zaman içinde kalibre kalacağını garanti etmez.
