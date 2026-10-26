@@ -1,0 +1,22 @@
+name: Dataset explorer tests
+on:
+  push:
+    paths:
+      - 'explore_dataset.py'
+      - 'test_explore_dataset.py'
+      - '.github/workflows/dataset-explorer.yml'
+  pull_request:
+    paths:
+      - 'explore_dataset.py'
+      - 'test_explore_dataset.py'
+      - '.github/workflows/dataset-explorer.yml'
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m unittest -v test_explore_dataset.py
+      - run: python -m py_compile explore_dataset.py test_explore_dataset.py
