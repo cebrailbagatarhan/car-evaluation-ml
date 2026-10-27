@@ -84,9 +84,6 @@ class BatchInputValidationTests(unittest.TestCase):
         self.assertIn("Unsupported", validate_file(path)["errors"][0])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_jsonl_accepts_one_record_per_line_and_blank_lines(self):
         path = self.write("input.jsonl", "\n".join([
             json.dumps(VALID), "", "  ", json.dumps(VALID), "",
@@ -118,3 +115,7 @@ if __name__ == "__main__":
         report = validate_file(path)
         self.assertEqual(report["rows"], 0)
         self.assertIn("no prediction rows", report["errors"][0])
+
+
+if __name__ == "__main__":
+    unittest.main()
