@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Evaluation</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #101827; }
+    main { width: min(92vw, 560px); padding: 2rem; border-radius: 16px; background: #172033; box-shadow: 0 20px 50px #0007; }
+    h1 { margin-top: 0; }
+    form { display: grid; gap: 1rem; }
+    label { display: grid; gap: .35rem; font-weight: 600; }
+    select, button { padding: .75rem; border-radius: 8px; border: 1px solid #64748b; font: inherit; }
+    button { cursor: pointer; background: #38bdf8; color: #082f49; font-weight: 700; }
+    #result { margin-top: 1.25rem; padding: 1rem; border-radius: 8px; background: #0f172a; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🚗 Araba Değerlendirme</h1>
+    <p>Kategorileri seçin; model kabul edilebilirlik sınıfını tahmin etsin.</p>
+    <form id="prediction-form">
+      <label>Satın alma fiyatı
+        <select name="buying"><option>vhigh</option><option>high</option><option>med</option><option>low</option></select>
+      </label>
+      <label>Bakım maliyeti
+        <select name="maint"><option>vhigh</option><option>high</option><option>med</option><option>low</option></select>
+      </label>
+      <label>Kapı
+        <select name="doors"><option>2</option><option>3</option><option>4</option><option>5more</option></select>
+      </label>
+      <label>Kişi kapasitesi
+        <select name="persons"><option>2</option><option>4</option><option>more</option></select>
+      </label>
+      <label>Bagaj
+        <select name="lug_boot"><option>small</option><option>med</option><option>big</option></select>
+      </label>
+      <label>Güvenlik
+        <select name="safety"><option>low</option><option>med</option><option>high</option></select>
+      </label>
+      <button type="submit">Tahmin et</button>
+    </form>
+    <div id="result" role="status" aria-live="polite">Henüz tahmin yapılmadı.</div>
+  </main>
+  <script>
+    const form = document.querySelector("#prediction-form");
+    const result = document.querySelector("#result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.textContent = "Tahmin yapılıyor…";
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Tahmin başarısız");
+
+        const probabilities = Object.entries(body.probabilities || {})
+          .map(([name, value]) => `${name}: %${(value * 100).toFixed(1)}`)
+          .join("\n");
+        result.textContent = `Tahmin: ${body.prediction}\n${probabilities}`;
+      } catch (error) {
+        result.textContent = `Hata: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
