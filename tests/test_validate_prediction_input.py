@@ -84,5 +84,38 @@ class BatchInputValidationTests(unittest.TestCase):
         self.assertIn("Unsupported", validate_file(path)["errors"][0])
 
 
+    def test_jsonl_accepts_one_record_per_line_and_blank_lines(self):
+        path = self.write("input.jsonl", "\n".join([
+            json.dumps(VALID), "", "  ", json.dumps(VALID), "",
+        ]))
+        report = validate_file(path)
+        self.assertEqual((report["rows"], report["valid_rows"], report["errors"]), (2, 2, []))
+        self.assertEqual(main([str(path), "--format", "json"]), 0)
+
+    def test_ndjson_reports_bad_lines_and_continues(self):
+        path = self.write("input.ndjson", "\n".join([
+            json.dumps(VALID), "{bad", json.dumps({**VALID, "safety": "unsafe"}),
+            json.dumps(VALID),
+        ]))
+        report = validate_file(path)
+        self.assertEqual((report["rows"], report["valid_rows"]), (4, 2))
+        self.assertEqual(len(report["errors"]), 2)
+        self.assertIn("JSONL line 2: invalid JSON", report["errors"][0])
+        self.assertIn("JSONL line 3: invalid safety", report["errors"][1])
+        self.assertEqual(main([str(path)]), 1)
+
+    def test_jsonl_rejects_non_object_items(self):
+        path = self.write("input.jsonl", json.dumps(123) + "\n")
+        report = validate_file(path)
+        self.assertEqual((report["rows"], report["valid_rows"]), (1, 0))
+        self.assertIn("expected an object", report["errors"][0])
+
+    def test_jsonl_with_only_blank_lines_is_empty(self):
+        path = self.write("input.jsonl", "\n   \n")
+        report = validate_file(path)
+        self.assertEqual(report["rows"], 0)
+        self.assertIn("no prediction rows", report["errors"][0])
+
+
 if __name__ == "__main__":
     unittest.main()

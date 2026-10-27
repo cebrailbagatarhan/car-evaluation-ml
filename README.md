@@ -89,6 +89,16 @@ Endpoint'ler:
 }
 ```
 
+## Toplu tahmin girdisi ön kontrolü (model gerektirmez)
+
+CSV, JSON dizi ve satır başına bir JSON nesnesi içeren `.jsonl` / `.ndjson` dosyalarını tahminden önce doğrulayabilirsiniz:
+
+```bash
+python validate_prediction_input.py batch.jsonl --format json
+```
+
+Boş satırlar atlanır; hatalı satırlar numaralarıyla raporlanır ve sonraki kayıtlar da kontrol edilir. Dosya değiştirilmez, model yüklenmez. En az bir geçersiz kayıt varsa komut çıkış kodu 1 döndürür.
+
 ## Encoding benchmark (nested CV)
 
 ### Neden yeni benchmark var?

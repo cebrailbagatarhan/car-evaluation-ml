@@ -42,8 +42,8 @@ def validate_file(path):
     """Return a JSON-serializable report without modifying the input file."""
     path = Path(path)
     report = {"file": str(path), "rows": 0, "valid_rows": 0, "errors": []}
-    if path.suffix.lower() not in {".csv", ".json"}:
-        report["errors"].append("Unsupported extension: use .csv or .json")
+    if path.suffix.lower() not in {".csv", ".json", ".jsonl", ".ndjson"}:
+        report["errors"].append("Unsupported extension: use .csv, .json, .jsonl or .ndjson")
         return report
 
     try:
@@ -65,6 +65,22 @@ def validate_file(path):
                         report["errors"].append(f"{location}: too many fields")
                         continue
                     errors = _validate_record(row, location)
+                    report["errors"].extend(errors)
+                    if not errors:
+                        report["valid_rows"] += 1
+        elif path.suffix.lower() in {".jsonl", ".ndjson"}:
+            with path.open("r", encoding="utf-8-sig") as handle:
+                for line_number, line in enumerate(handle, 1):
+                    if not line.strip():
+                        continue
+                    report["rows"] += 1
+                    location = f"JSONL line {line_number}"
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        report["errors"].append(f"{location}: invalid JSON ({exc.msg})")
+                        continue
+                    errors = _validate_record(record, location)
                     report["errors"].extend(errors)
                     if not errors:
                         report["valid_rows"] += 1
@@ -90,7 +106,7 @@ def validate_file(path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Validate Car Evaluation batch inputs offline")
-    parser.add_argument("file", help="CSV or JSON file with six categorical features")
+    parser.add_argument("file", help="CSV, JSON array, or JSONL file with six categorical features")
     parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
     report = validate_file(args.file)
