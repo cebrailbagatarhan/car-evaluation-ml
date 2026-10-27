@@ -1,0 +1,28 @@
+name: Car dataset audit tests
+
+on:
+  pull_request:
+    paths:
+      - 'audit_car_dataset.py'
+      - 'car.data'
+      - 'tests/test_audit_car_dataset.py'
+      - '.github/workflows/dataset-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p 'test_audit_car_dataset.py' -v
+      - name: Check committed dataset
+        run: python audit_car_dataset.py --require-complete --json
+      - name: Syntax check
+        run: python -m py_compile audit_car_dataset.py tests/test_audit_car_dataset.py
