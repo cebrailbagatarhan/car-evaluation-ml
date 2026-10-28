@@ -7,6 +7,7 @@ import argparse
 import csv
 import json
 from collections import Counter
+from itertools import product
 from pathlib import Path
 
 
@@ -21,8 +22,10 @@ FEATURE_VALUES = {
 CLASS_VALUES = ("unacc", "acc", "good", "vgood")
 
 
-def audit_dataset(path, *, require_complete=False):
+def audit_dataset(path, *, require_complete=False, show_missing=0):
     """Validate row width, allowed values and uniqueness of six-feature tuples."""
+    if not isinstance(show_missing, int) or not 0 <= show_missing <= 20:
+        raise ValueError("show_missing must be between 0 and 20")
     combinations = Counter()
     classes = Counter()
     issues = []
@@ -53,7 +56,14 @@ def audit_dataset(path, *, require_complete=False):
     missing_count = expected_count - len(combinations)
     if require_complete and missing_count:
         issues.append(f"missing {missing_count} of {expected_count} possible feature combinations")
-    return {
+    missing_examples = []
+    if show_missing:
+        for values in product(*FEATURE_VALUES.values()):
+            if values not in combinations:
+                missing_examples.append(dict(zip(FEATURE_VALUES, values)))
+                if len(missing_examples) >= show_missing:
+                    break
+    report = {
         "valid": not issues,
         "rows": row_count,
         "unique_combinations": len(combinations),
@@ -63,6 +73,9 @@ def audit_dataset(path, *, require_complete=False):
         "issue_count": len(issues),
         "issues": issues[:10],
     }
+    if show_missing:
+        report["missing_examples"] = missing_examples
+    return report
 
 
 def main(argv=None):
@@ -70,9 +83,14 @@ def main(argv=None):
     parser.add_argument("path", nargs="?", type=Path, default=Path(__file__).with_name("car.data"))
     parser.add_argument("--require-complete", action="store_true", help="require all 1728 feature combinations")
     parser.add_argument("--json", action="store_true", help="emit JSON report")
+    parser.add_argument("--show-missing", type=int, default=0, metavar="N",
+                        help="show up to N missing feature combinations (0-20)")
     args = parser.parse_args(argv)
+    if not 0 <= args.show_missing <= 20:
+        parser.error("--show-missing must be between 0 and 20")
     try:
-        report = audit_dataset(args.path, require_complete=args.require_complete)
+        report = audit_dataset(args.path, require_complete=args.require_complete,
+                               show_missing=args.show_missing)
     except (OSError, UnicodeError, csv.Error) as exc:
         parser.error(f"cannot read dataset: {exc}")
     if args.json:
@@ -82,6 +100,8 @@ def main(argv=None):
         print(f"Status: {'PASS' if report['valid'] else 'FAIL'} | issues: {report['issue_count']}")
         for issue in report["issues"]:
             print(f"- {issue}")
+        for example in report.get("missing_examples", []):
+            print("  missing: " + ", ".join(f"{key}={value}" for key, value in example.items()))
         if report["issue_count"] > len(report["issues"]):
             print(f"... {report['issue_count'] - len(report['issues'])} additional issues omitted")
     return 0 if report["valid"] else 1

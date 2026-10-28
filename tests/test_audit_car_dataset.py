@@ -47,6 +47,41 @@ class AuditDatasetTests(unittest.TestCase):
             self.assertEqual(main([str(self.path), "--json"]), 0)
         self.assertTrue(json.loads(output.getvalue())["valid"])
 
+    def test_missing_preview_is_limited_and_preserves_default_report(self):
+        self.write("low,low,4,4,big,high,good\n")
+        self.assertNotIn("missing_examples", audit_dataset(self.path))
+        report = audit_dataset(self.path, show_missing=2)
+        self.assertEqual(report["missing_combinations"], 1727)
+        self.assertEqual(report["missing_examples"], [
+            {"buying": "vhigh", "maint": "vhigh", "doors": "2",
+             "persons": "2", "lug_boot": "small", "safety": "low"},
+            {"buying": "vhigh", "maint": "vhigh", "doors": "2",
+             "persons": "2", "lug_boot": "small", "safety": "med"},
+        ])
+        self.assertTrue(report["valid"])
+
+    def test_missing_preview_cli_json_and_text(self):
+        self.write("low,low,4,4,big,high,good\n")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(main([str(self.path), "--show-missing", "1", "--json"]), 0)
+        self.assertEqual(len(json.loads(output.getvalue())["missing_examples"]), 1)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(main([str(self.path), "--show-missing", "1"]), 0)
+        self.assertIn("missing: buying=vhigh", output.getvalue())
+
+    def test_missing_preview_rejects_invalid_limits(self):
+        self.write("low,low,4,4,big,high,good\n")
+        for value in (-1, 21):
+            with self.subTest(value=value):
+                with contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as error:
+                        main([str(self.path), "--show-missing", str(value)])
+                self.assertEqual(error.exception.code, 2)
+        with self.assertRaises(ValueError):
+            audit_dataset(self.path, show_missing=21)
+
 
 if __name__ == "__main__":
     unittest.main()
