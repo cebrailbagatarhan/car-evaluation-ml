@@ -9,7 +9,7 @@ from pathlib import Path
 COLUMNS = ("buying", "maint", "doors", "persons", "lug_boot", "safety", "class")
 
 
-def summarize(path: Path, filters: dict[str, str]) -> dict[str, object]:
+def summarize(path: Path, filters: dict[str, str], *, include_percentages: bool = False) -> dict[str, object]:
     counts: Counter[str] = Counter()
     matched = 0
     with path.open(newline="", encoding="utf-8") as stream:
@@ -20,7 +20,12 @@ def summarize(path: Path, filters: dict[str, str]) -> dict[str, object]:
             if all(record[key] == value for key, value in filters.items()):
                 counts[record["class"]] += 1
                 matched += 1
-    return {"matched": matched, "filters": filters, "classes": dict(sorted(counts.items()))}
+    summary = {"matched": matched, "filters": filters, "classes": dict(sorted(counts.items()))}
+    if include_percentages:
+        summary["class_percentages"] = {
+            label: round(count * 100 / matched, 1) for label, count in sorted(counts.items())
+        } if matched else {}
+    return summary
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,10 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--persons", choices=("2", "4", "more"))
     parser.add_argument("--safety", choices=("low", "med", "high"))
     parser.add_argument("--format", choices=("text", "json"), default="text")
+    parser.add_argument("--percent", action="store_true", help="include per-class percentages of matching rows")
     args = parser.parse_args(argv)
     filters = {key: value for key in ("buying", "persons", "safety") if (value := getattr(args, key)) is not None}
     try:
-        summary = summarize(args.data, filters)
+        summary = summarize(args.data, filters, include_percentages=args.percent)
     except (OSError, ValueError) as exc:
         parser.exit(1, f"Cannot read dataset: {exc}\n")
     if args.format == "json":
@@ -41,7 +47,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"Matching cars: {summary['matched']}")
         for label, count in summary["classes"].items():
-            print(f"  {label}: {count}")
+            percentage = f" ({summary['class_percentages'][label]:.1f}%)" if args.percent else ""
+            print(f"  {label}: {count}{percentage}")
     return 0
 
 
