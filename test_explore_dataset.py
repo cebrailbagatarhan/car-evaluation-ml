@@ -36,6 +36,26 @@ class ExploreDatasetTests(unittest.TestCase):
             self.assertEqual(main(["--data", str(self.path), "--safety", "low", "--format", "json"]), 0)
         self.assertEqual(json.loads(output.getvalue())["classes"], {"unacc": 1})
 
+    def test_optional_class_percentages(self):
+        result = summarize(self.path, {}, include_percentages=True)
+        self.assertEqual(result["matched"], 3)
+        self.assertEqual(result["class_percentages"], {"good": 33.3, "unacc": 33.3, "vgood": 33.3})
+        self.assertNotIn("class_percentages", summarize(self.path, {}))
+
+    def test_percentages_with_no_matches(self):
+        result = summarize(self.path, {"persons": "4"}, include_percentages=True)
+        self.assertEqual(result["class_percentages"], {})
+
+    def test_percent_cli_text_and_json(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(main(["--data", str(self.path), "--safety", "high", "--percent"]), 0)
+        self.assertIn("good: 1 (50.0%)", output.getvalue())
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(main(["--data", str(self.path), "--percent", "--format", "json"]), 0)
+        self.assertEqual(json.loads(output.getvalue())["class_percentages"]["vgood"], 33.3)
+
     def test_bad_row_rejected(self):
         self.path.write_text("low,low\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "line 1"):
